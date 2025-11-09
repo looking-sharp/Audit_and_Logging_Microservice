@@ -67,42 +67,70 @@ def require_admin_auth(f):
         token = auth_header.split(' ')[1]
         if token != Config.ADMIN_API_KEY:
             return jsonify({"error": "Invalid API key"}), 401
-        
-        admin_user = request.json.get('admin_user')
-        if admin_user not in Config.ADMIN_USERS:
-            return jsonify({"error": "Unauthorized user"}), 401
             
-        return f(admin_user, *args, **kwargs)
+        return f(*args, **kwargs)
     return decorated_function
 
-def execute_purge(criteria, admin_user=None):
-    """Execute purge based on criteria"""
-    if logs is None:
-        return 0
+class PurgeManager:
+    """Centralized purge logic for both automatic and manual operations"""
     
-    if criteria.get('delete_all'):
-        query = {}
-    elif 'older_than_days' in criteria:
-        cutoff = datetime.utcnow() - timedelta(days=criteria['older_than_days'])
-        query = {"timestamp": {"$lt": cutoff.isoformat()}}
-    elif 'service' in criteria:
-        query = {"service": criteria['service']}
-    else:
-        return 0
+    @staticmethod
+    def execute_purge(criteria, admin_user=None, is_automatic=False):
+        """Execute purge based on criteria - handles both manual and automatic purges"""
+        if logs is None:
+            return 0
+        
+        # Build MongoDB query based on criteria
+        if criteria.get('delete_all'):
+            query = {}
+            purge_type = "all logs"
+        elif 'older_than_days' in criteria:
+            cutoff = datetime.utcnow() - timedelta(days=criteria['older_than_days'])
+            query = {"timestamp": {"$lt": cutoff.isoformat()}}
+            purge_type = f"logs older than {criteria['older_than_days']} days"
+        elif 'service' in criteria:
+            query = {"service": criteria['service']}
+            purge_type = f"logs from service '{criteria['service']}'"
+        else:
+            return 0
+        
+        # Execute purge
+        result = logs.delete_many(query)
+        count = result.deleted_count
+        
+        # Log purge results
+        if is_automatic:
+            print(f"Automatic daily purge: {count} records deleted ({purge_type})")
+        elif admin_user:
+            print(f"Manual admin purge by {admin_user}: {count} records deleted ({purge_type})")
+        else:
+            print(f"Purge completed: {count} records deleted ({purge_type})")
+        
+        return count
     
-    result = logs.delete_many(query)
-    count = result.deleted_count
-    if admin_user:
-        print(f"Admin purge by {admin_user}: {count} records deleted")
-    else:
-        print(f"Automatic purge: {count} records deleted")
+    @staticmethod
+    def get_automatic_criteria():
+        """Get criteria for automatic daily purge (3-year retention)"""
+        return {"older_than_days": Config.RETENTION_DAYS}
     
-    return count
+    @staticmethod
+    def validate_manual_criteria(criteria):
+        """Validate manual purge criteria"""
+        if not criteria:
+            return False, "Missing purge criteria"
+        
+        valid_keys = ['delete_all', 'older_than_days', 'service']
+        has_valid_key = any(key in criteria for key in valid_keys)
+        
+        if not has_valid_key:
+            return False, "Invalid purge criteria. Must specify one of: delete_all, older_than_days, service"
+        
+        return True, None
 
 def daily_purge():
-    """Daily automatic purge job"""
-    criteria = {"older_than_days": Config.RETENTION_DAYS}
-    execute_purge(criteria)
+    """Daily automatic purge job - uses centralized PurgeManager"""
+    criteria = PurgeManager.get_automatic_criteria()
+    PurgeManager.execute_purge(criteria, is_automatic=True)
 
 schedule.every().day.at(Config.PURGE_TIME).do(daily_purge)
 
@@ -199,7 +227,7 @@ def get_logs():
 
 @app.route('/purge-logs', methods=['POST'])
 @require_admin_auth
-def purge_logs(admin_user):
+def purge_logs():
     """
     USER STORY 3: User Log Purge
     
@@ -232,12 +260,18 @@ def purge_logs(admin_user):
     if logs is None:
         return jsonify({"error": "Database unavailable"}), 500
     
+    # Validate body parameters
+    admin_user = request.json.get('admin_user')
+    if admin_user not in Config.ADMIN_USERS:
+        return jsonify({"error": "Unauthorized user"}), 401
+    
     criteria = request.json.get('criteria', {})
-    if not criteria:
-        return jsonify({"error": "Missing purge criteria"}), 400
+    is_valid, error_msg = PurgeManager.validate_manual_criteria(criteria)
+    if not is_valid:
+        return jsonify({"error": error_msg}), 400
     
     def async_purge():
-        execute_purge(criteria, admin_user)
+        PurgeManager.execute_purge(criteria, admin_user=admin_user)
     
     threading.Thread(target=async_purge, daemon=True).start()
     

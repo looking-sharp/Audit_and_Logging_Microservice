@@ -19,7 +19,7 @@ def test_purge_logic_directly():
     
     # Import your app components
     try:
-        from app import Config, execute_purge
+        from app import Config, PurgeManager
         print("Successfully imported app components")
     except Exception as e:
         print(f"Import error: {e}")
@@ -60,7 +60,7 @@ def test_purge_logic_directly():
                 mock_logs.__bool__ = lambda x: True
             
             try:
-                result = execute_purge(criteria, admin_user="test_admin")
+                result = PurgeManager.execute_purge(criteria, admin_user="test_admin")
                 print(f"   Test {i}: {description}")
                 print(f"      Criteria: {criteria}")
                 print(f"      Expected: {expected}, Got: {result}")

@@ -1,56 +1,137 @@
 # Audit and Logging Microservice
 
-Centralized audit logging for compliance, security monitoring, and system debugging across multiple services.
+Microservice Communication Contract
 
-## Features
+## Implementation Status
 
-- **User Actions Record** *(pending)*: Centralized logging of all user and system actions
-- **Filter Audit Logs** *(pending)*: Query logs with filters for compliance analysis  
-- **User Log Purge** *(implemented)*: Automated daily purging with 3-year retention and manual admin controls
+- **POST /log** - PENDING
+- **GET /logs**  - PENDING 
+- **POST /purge-logs** - IMPLEMENTED
 
 ## Setup
 
-**Prerequisites:** Python 3.8+, MongoDB, pip
-
 ```bash
-git clone <repository-url>
+git clone https://github.com/looking-sharp/Audit_and_Logging_Microservice
 cd Audit_and_Logging_Microservice
 pip install -r requirements.txt
 python app.py
 ```
 
-Service runs on `http://localhost:5000` with automatic daily purging enabled.
+Service runs on `http://localhost:5000`
 
-## API Endpoints
+---
 
-### POST /log *(pending)*
-Records audit log entries. Requires: `service`, `action`, `level`. Optional: `user_id`, `details`.
+## ENDPOINTS
 
-### GET /logs *(pending)*  
-Retrieves logs with filtering by service, user_id, level, action, date range. Supports pagination.
+### 1. Record User Actions (PENDING)
 
-### POST /purge-logs *(implemented)*
-Admin-only purging. Requires `Authorization: Bearer <ADMIN_API_KEY>`. 
-Criteria: `delete_all`, `older_than_days`, or `service`. Returns `202 Accepted`.
+**Endpoint:** `POST /log`
+
+**Purpose:** Record user and system actions for audit trail
+
+**Request:** *(To be implemented)*
+
+**Response:** *(To be implemented)*
+
+### 2. Retrieve Audit Logs (PENDING)
+
+**Endpoint:** `GET /logs`
+
+**Purpose:** Query audit logs with filters for compliance analysis
+
+**Request:** *(To be implemented)*
+
+**Response:** *(To be implemented)*
+
+### 3. Purge Audit Logs (IMPLEMENTED)
+
+**Endpoint:** `POST /purge-logs`
+
+**Authentication:** Bearer token required
+
+**Request:**
+```
+POST http://localhost:5000/purge-logs
+Authorization: Bearer secret-admin-key
+Content-Type: application/json
+
+{
+  "admin_user": "admin@company.com",
+  "criteria": {
+    "older_than_days": 90
+  }
+}
+```
+
+**Criteria Options:**
+- `{"older_than_days": 90}` - Delete logs older than X days
+- `{"service": "ServiceName"}` - Delete logs from specific service
+- `{"delete_all": true}` - Delete all logs
+
+**Response:**
+
+```json
+{
+  "status": "accepted",
+  "message": "Purge process initiated"
+}
+```
+
+**Error Responses:**
+- 401 Unauthorized: Invalid API key or user
+- 400 Bad Request: Missing or invalid criteria
+
+**Detailed Error Responses:**
+
+401 Unauthorized - Missing Authorization:
+```json
+{"error": "Missing or invalid Authorization header"}
+```
+
+401 Unauthorized - Invalid User:
+```json
+{"error": "Unauthorized user"}
+```
+
+400 Bad Request - Missing Criteria:
+```json
+{"error": "Missing purge criteria"}
+```
+
+## UML SEQUENCE DIAGRAM
+Pending
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ADMIN_API_KEY` | `secret-admin-key` | API key for purge operations |
-| `RETENTION_DAYS` | `1095` | Data retention period (3 years) |
-| `PURGE_TIME` | `02:00` | Daily auto-purge time (HH:MM UTC) |
-| `MONGO_URI` | `mongodb://localhost:27017/` | MongoDB connection string |
-
-## Dependencies
-
-Flask 2.3.3, pymongo 4.6.0, schedule 1.2.0
+Environment Variables:
+- `ADMIN_API_KEY`: Authentication key (default: "secret-admin-key")
+- `RETENTION_DAYS`: Auto-purge retention period (default: 1095 days = 3 years)
+- `PURGE_TIME`: Daily purge time in HH:MM format (default: "02:00" UTC)
+- `MONGO_URI`: Database connection string (default: "mongodb://localhost:27017/")
 
 ## Testing
 
 ```bash
 python test_purge.py
-python -c "from app import app; print('App loads successfully')"
 ```
 
-**Features**: Daily auto-purging, concurrent processing, graceful MongoDB degradation, <1s response time for 1000 logs, API key authentication.
+Tests cover purge validation, authentication, error handling, and MongoDB operations (mocked for speed).
+
+## Dependencies
+
+```
+Flask==2.3.3
+pymongo==4.6.0
+schedule==1.2.0
+```
+
+## DEPLOYMENT STATUS
+
+| Feature | Status | Implementation |
+|---------|--------|----------------|
+| **POST /log** | **PENDING** | Pending |
+| **GET /logs** | **PENDING** | Pending |  
+| **POST /purge-logs** | **COMPLETE** | Implemented |
+| **Daily Auto-Purge** | **COMPLETE** | Runs automatically at 2 AM UTC |
+
+---

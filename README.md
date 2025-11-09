@@ -202,8 +202,8 @@ schedule==1.2.0
 
 | Feature | Status | Implementation |
 |---------|--------|----------------|
-| **POST /log** | **PENDING** | Pending |
-| **GET /logs** | **PENDING** | Pending |  
+| **POST /log** | **PENDING** | Implemented |
+| **GET /logs** | **PENDING** | Implemented |  
 | **POST /purge-logs** | **COMPLETE** | Implemented |
 | **Daily Auto-Purge** | **COMPLETE** | Runs automatically at 2 AM UTC |
 

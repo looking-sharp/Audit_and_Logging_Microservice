@@ -140,12 +140,12 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(60)
 
-# USER STORY 1: User Actions Record - Tiffany's Implementation Required
+# USER STORY 1: User Actions Record
 @app.route('/log', methods=['POST'])
 def create_log():
     """
     Records user and service actions in centralized audit log
-    
+
     ACCEPTANCE CRITERIA:
     - Accept POST /log with service, user_id, action, level, details
     - Auto-timestamp with UTC time
@@ -153,28 +153,55 @@ def create_log():
     - Return {"status": "success"} confirmation on successful storage
     - Return descriptive error for missing/invalid required fields
     - Handle concurrent logs from multiple microservices (Auth, Training, Procedures)
-    
+
     FUNCTIONAL REQUIREMENT:
     Given: microservice needs to record an event
     When: sends valid POST /log with service, action, level
     Then: store log with UTC timestamp and respond 200 {"status": "success"}
-    
+
     Required Fields: service, action, level
     Optional Fields: user_id, details
-    
+
     Expected Request:
     {
         "service": "Auth|Training|Procedures|etc",
         "user_id": "user123" (optional),
-        "action": "login|logout|create|update|delete|api_call", 
+        "action": "login|logout|create|update|delete|api_call",
         "level": "INFO|WARNING|ERROR",
         "details": "Human readable description" (optional)
     }
-    
+
     Success Response: 200 OK {"status": "success"}
     Error Response: 400 Bad Request with descriptive message
     """
-    return jsonify({"status": "success"}), 201
+    if logs is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    required_fields = ["service", "action", "level"]
+    missing = [f for f in required_fields if f not in data or not data[f]]
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    # Build log entry
+    log_entry = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "service": data["service"],
+        "user_id": data.get("user_id"),
+        "action": data["action"],
+        "level": data["level"].upper(),
+        "details": data.get("details"),
+    }
+
+    try:
+        result = logs.insert_one(log_entry)
+        return jsonify({"status": "success", "id": str(result.inserted_id)}), 201
+    except Exception as e:
+        print(f"Error inserting log: {e}")
+        return jsonify({"error": "Failed to store log entry"}), 500
 
 # USER STORY 2: Filter Audit Logs - Partner Implementation Required
 @app.route('/logs', methods=['GET'])
@@ -223,7 +250,69 @@ def get_logs():
         "chronological_order": true
     }
     """
-    return jsonify({"logs": []}), 200
+    if logs is None:
+        return jsonify({"error": "Database unavailable"}), 500
+
+    # Parse filters from query parameters
+    query = {}
+    service = request.args.get("service")
+    level = request.args.get("level")
+    user_id = request.args.get("user_id")
+    action = request.args.get("action")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    limit = min(int(request.args.get("limit", 100)), 1000)
+    offset = int(request.args.get("offset", 0))
+
+    if service:
+        query["service"] = service
+    if level:
+        query["level"] = level.upper()
+    if user_id:
+        query["user_id"] = user_id
+    if action:
+        query["action"] = action
+    if start_date or end_date:
+        date_query = {}
+        if start_date:
+            try:
+                date_query["$gte"] = datetime.fromisoformat(start_date)
+            except Exception:
+                return jsonify({"error": "Invalid start_date format (expected YYYY-MM-DD)"}), 400
+        if end_date:
+            try:
+                # include up to the end of the given date
+                date_query["$lte"] = datetime.fromisoformat(end_date) + timedelta(days=1)
+            except Exception:
+                return jsonify({"error": "Invalid end_date format (expected YYYY-MM-DD)"}), 400
+        query["timestamp"] = date_query
+
+    try:
+        total_count = logs.count_documents({})
+        filtered_count = logs.count_documents(query)
+
+        cursor = (
+            logs.find(query)
+            .sort("timestamp", 1)
+            .skip(offset)
+            .limit(limit)
+        )
+
+        result_logs = []
+        for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            result_logs.append(doc)
+
+        return jsonify({
+            "logs": result_logs,
+            "total": total_count,
+            "filtered": filtered_count,
+            "chronological_order": True
+        }), 200
+
+    except Exception as e:
+        print(f"Error retrieving logs: {e}")
+        return jsonify({"error": "Failed to retrieve logs"}), 500
 
 @app.route('/purge-logs', methods=['POST'])
 @require_admin_auth

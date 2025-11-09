@@ -172,7 +172,7 @@ Content-Type: application/json
 ```
 
 ## UML SEQUENCE DIAGRAM
-Pending
+<img width="812" height="708" alt="image" src="https://github.com/user-attachments/assets/d46f5112-4404-4396-95d7-f52bc4879479" />
 
 ## Configuration
 
@@ -202,8 +202,8 @@ schedule==1.2.0
 
 | Feature | Status | Implementation |
 |---------|--------|----------------|
-| **POST /log** | **PENDING** | Implemented |
-| **GET /logs** | **PENDING** | Implemented |  
+| **POST /log** | **COMPLETE** | Implemented |
+| **GET /logs** | **COMPLETE** | Implemented |  
 | **POST /purge-logs** | **COMPLETE** | Implemented |
 | **Daily Auto-Purge** | **COMPLETE** | Runs automatically at 2 AM UTC |
 

@@ -4,8 +4,8 @@ Microservice Communication Contract
 
 ## Implementation Status
 
-- **POST /log** - PENDING
-- **GET /logs**  - PENDING 
+- **POST /log** - IMPLEMENTED
+- **GET /logs**  - IMPLEMENTED
 - **POST /purge-logs** - IMPLEMENTED
 
 ## Setup
@@ -23,25 +23,98 @@ Service runs on `http://localhost:5000`
 
 ## ENDPOINTS
 
-### 1. Record User Actions (PENDING)
+### 1. Record User Actions (IMPLEMENTED)
 
 **Endpoint:** `POST /log`
 
 **Purpose:** Record user and system actions for audit trail
 
-**Request:** *(To be implemented)*
+**Request:** 
+```
+*POST http://localhost:5000/log
+Content-Type: application/json
 
-**Response:** *(To be implemented)*
+{
+  "service": "Auth",
+  "user_id": "user123",
+  "action": "login",
+  "level": "INFO",
+  "details": "User successfully logged in"
+}
+```
+**Response:** 
+```
+HTTP 201 Created
+{
+  "status": "success",
+  "id": "654f8a1c28b9f0a0b2d4e321"
+}
+```
+**Error Response:**
+```
+HTTP 400 Bad Request
+{
+  "error": "Missing required fields: service, action, level"
+}
 
-### 2. Retrieve Audit Logs (PENDING)
+HTTP 500 Internal Server Error
+{
+  "error": "Database unavailable"
+}
+
+```
+
+### 2. Retrieve Audit Logs (IMPLEMENTED)
 
 **Endpoint:** `GET /logs`
 
 **Purpose:** Query audit logs with filters for compliance analysis
 
-**Request:** *(To be implemented)*
+**Request:** 
+```
+GET http://localhost:5000/logs?service=Auth&level=INFO&limit=50
+```
 
-**Response:** *(To be implemented)*
+**Response:**
+```
+HTTP 200 OK
+{
+  "logs": [
+    {
+      "_id": "654f8b9d1f4aef010fbf71a4",
+      "timestamp": "2025-11-08T10:30:00Z",
+      "service": "Auth",
+      "user_id": "user123",
+      "action": "login",
+      "level": "INFO",
+      "details": "User successfully logged in"
+    },
+    {
+      "_id": "654f8b9d1f4aef010fbf71a5",
+      "timestamp": "2025-11-08T10:45:00Z",
+      "service": "Training",
+      "user_id": "trainer42",
+      "action": "create",
+      "level": "WARNING",
+      "details": "Attempted to upload unsupported file type"
+    }
+  ],
+  "total": 1500,
+  "filtered": 25,
+  "chronological_order": true
+}
+```
+**Error Response:**
+```
+HTTP 400 Bad Request
+{
+  "error": "Invalid start_date format (expected YYYY-MM-DD)"
+}
+HTTP 500 Internal Server Error
+{
+  "error": "Failed to retrieve logs"
+}
+```
 
 ### 3. Purge Audit Logs (IMPLEMENTED)
 

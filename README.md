@@ -2,10 +2,16 @@
 
 Microservice Communication Contract
 
+## Quick Start
+
+```bash
+python app.py
+```
+
 ## Implementation Status
 
 - **POST /log** - IMPLEMENTED
-- **GET /logs**  - IMPLEMENTED
+- **GET /logs** - IMPLEMENTED  
 - **POST /purge-logs** - IMPLEMENTED
 
 ## Setup
@@ -14,6 +20,9 @@ Microservice Communication Contract
 git clone https://github.com/looking-sharp/Audit_and_Logging_Microservice
 cd Audit_and_Logging_Microservice
 pip install -r requirements.txt
+```
+
+```bash
 python app.py
 ```
 
@@ -175,6 +184,8 @@ HTTP 202 Accepted
 ## UML SEQUENCE DIAGRAM
 <img width="812" height="708" alt="image" src="https://github.com/user-attachments/assets/d46f5112-4404-4396-95d7-f52bc4879479" />
 
+
+
 ## Configuration
 
 Environment Variables:
@@ -185,11 +196,7 @@ Environment Variables:
 
 ## Testing
 
-```bash
-python test_purge.py
-```
-
-Tests cover purge validation, authentication, error handling, and MongoDB operations (mocked for speed).
+Tests cover all three endpoints with proper authentication, validation, and error handling.
 
 ## Dependencies
 

@@ -152,8 +152,10 @@ Content-Type: application/json
 
 **Response:**
 
-```json
+```
 HTTP 202 Accepted
+```
+```json
 {
   "status": "accepted",
   "message": "Purge process initiated"

@@ -52,7 +52,19 @@ try:
     client = MongoClient(Config.MONGO_URI)
     db = client.audit_logs
     logs = db.logs
-    print("Connected to MongoDB")
+    
+    # Create performance indexes for fast querying
+    try:
+        logs.create_index("timestamp")  # Critical for date filtering and sorting
+        logs.create_index("service")    # For service filtering
+        logs.create_index("level")      # For level filtering  
+        logs.create_index("user_id")    # For user filtering
+        logs.create_index("action")     # For action filtering
+        logs.create_index([("service", 1), ("timestamp", -1)])  # Compound index for common queries
+        print("Connected to MongoDB with performance indexes")
+    except Exception as idx_error:
+        print(f"Index creation warning: {idx_error}")
+        
 except Exception as e:
     print(f"MongoDB connection failed: {e}")
     logs = None
@@ -86,7 +98,7 @@ class PurgeManager:
             purge_type = "all logs"
         elif 'older_than_days' in criteria:
             cutoff = datetime.utcnow() - timedelta(days=criteria['older_than_days'])
-            query = {"timestamp": {"$lt": cutoff.isoformat()}}
+            query = {"timestamp": {"$lt": cutoff}}  # Query datetime objects directly
             purge_type = f"logs older than {criteria['older_than_days']} days"
         elif 'service' in criteria:
             query = {"service": criteria['service']}
@@ -186,9 +198,10 @@ def create_log():
     if missing:
         return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
 
-    # Build log entry
+    # Build log entry - store timestamp as datetime object for proper querying
     log_entry = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.utcnow(),
+        "timestamp_str": datetime.utcnow().isoformat() + "Z",  # Keep string for display
         "service": data["service"],
         "user_id": data.get("user_id"),
         "action": data["action"],
@@ -276,13 +289,16 @@ def get_logs():
         date_query = {}
         if start_date:
             try:
-                date_query["$gte"] = datetime.fromisoformat(start_date)
+                # Parse date string and create datetime object for comparison
+                start_dt = datetime.fromisoformat(start_date)
+                date_query["$gte"] = start_dt
             except Exception:
                 return jsonify({"error": "Invalid start_date format (expected YYYY-MM-DD)"}), 400
         if end_date:
             try:
-                # include up to the end of the given date
-                date_query["$lte"] = datetime.fromisoformat(end_date) + timedelta(days=1)
+                # Include up to the end of the given date
+                end_dt = datetime.fromisoformat(end_date) + timedelta(days=1)
+                date_query["$lte"] = end_dt
             except Exception:
                 return jsonify({"error": "Invalid end_date format (expected YYYY-MM-DD)"}), 400
         query["timestamp"] = date_query
@@ -301,6 +317,12 @@ def get_logs():
         result_logs = []
         for doc in cursor:
             doc["_id"] = str(doc["_id"])
+            # Use string timestamp for API response (compatibility)
+            if "timestamp_str" in doc:
+                doc["timestamp"] = doc["timestamp_str"]
+                del doc["timestamp_str"]
+            elif isinstance(doc.get("timestamp"), datetime):
+                doc["timestamp"] = doc["timestamp"].isoformat() + "Z"
             result_logs.append(doc)
 
         return jsonify({
@@ -376,4 +398,4 @@ if __name__ == "__main__":
         print(f"Automatic purge scheduled daily at {Config.PURGE_TIME}")
     
     print("Starting Flask server...")
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

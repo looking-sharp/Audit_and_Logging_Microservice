@@ -17,7 +17,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Service runs on `http://localhost:5000`
+Service runs on `http://localhost:5001`
 
 ---
 
@@ -31,7 +31,7 @@ Service runs on `http://localhost:5000`
 
 **Request:** 
 ```
-*POST http://localhost:5000/log
+POST http://localhost:5001/log
 Content-Type: application/json
 
 {
@@ -72,7 +72,7 @@ HTTP 500 Internal Server Error
 
 **Request:** 
 ```
-GET http://localhost:5000/logs?service=Auth&level=INFO&limit=50
+GET http://localhost:5001/logs?service=Auth&level=INFO&limit=50
 ```
 
 **Response:**
@@ -124,7 +124,7 @@ HTTP 500 Internal Server Error
 
 **Request:**
 ```
-POST http://localhost:5000/purge-logs
+POST http://localhost:5001/purge-logs
 Authorization: Bearer secret-admin-key
 Content-Type: application/json
 
@@ -144,6 +144,7 @@ Content-Type: application/json
 **Response:**
 
 ```json
+HTTP 202 Accepted
 {
   "status": "accepted",
   "message": "Purge process initiated"

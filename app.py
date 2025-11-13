@@ -398,4 +398,4 @@ if __name__ == "__main__":
         print(f"Automatic purge scheduled daily at {Config.PURGE_TIME}")
     
     print("Starting Flask server...")
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=5001)

@@ -182,25 +182,6 @@ Content-Type: application/json
     print("\n" + "="*70)
     print("TEST COMPLETE!")
     print("="*70)
-    
-    print("\nTEST RESULTS:")
-    print("   Test program made HTTP requests to microservice")
-    print("   Microservice processed requests and stored data in MongoDB")
-    print("   Test program received responses with real data")
-    print("   All formats match API documentation")
-    print("   Real MongoDB integration with persistent storage")
-    
-    print("\nCOMMUNICATION FLOW VERIFIED:")
-    print("   1. HTTP POST /log → MongoDB Insert → 201 Created Response")
-    print("   2. HTTP GET /logs → MongoDB Query → 200 OK with Data")
-    print("   3. HTTP POST /purge-logs → Admin Auth → 202 Accepted")
-    
-    print("\nAPI CONTRACT FULFILLED:")
-    print("   Request formats match documentation")
-    print("   Response formats match documentation")
-    print("   HTTP status codes match specifications")
-    print("   Authentication flow works as documented")
-    
     print("\nMicroservice is working correctly!")
 
 if __name__ == "__main__":

@@ -1,33 +1,5 @@
 """
 Audit and Logging Microservice
-
-Implements three core user stories:
-
-1. USER ACTIONS RECORD (POST /log)
-   - Records all user and service actions (login, data updates, API calls) in centralized audit log
-   - Enables system administrators to trace activity, monitor usage, investigate security issues
-   - Accepts service, user_id, action, level, details with automatic UTC timestamping
-   - Stores persistently in MongoDB with success confirmation
-   - Handles logs from multiple microservices (Auth, Training, Procedures) concurrently
-
-2. FILTER AUDIT LOGS (GET /logs)
-   - Enables compliance administrators to query logs with filters
-   - Supports filtering by service name, user ID, log level for compliance analysis
-   - Returns logs in chronological order with full event details
-   - Handles missing filters gracefully (returns all logs when none specified)
-   - Performance target: <1 second response for 1,000 logs
-
-3. USER LOG PURGE (POST /purge-logs))
-   - Automated daily purging respecting 3-year data retention requirement
-   - Admin-only manual purge with flexible criteria (delete_all, older_than_days, service)
-   - Secure authentication with API key validation
-   - Asynchronous processing with 202 Accepted response
-
-Configuration via environment variables:
-- RETENTION_DAYS: Data retention period in days (default: 1095 = 3 years)
-- PURGE_TIME: Daily automated purge time HH:MM (default: 02:00 UTC)
-- ADMIN_API_KEY: Authentication key for purge operations
-- MONGO_URI: MongoDB connection string
 """
 
 from flask import Flask, request, jsonify
@@ -157,34 +129,6 @@ def run_scheduler():
 def create_log():
     """
     Records user and service actions in centralized audit log
-
-    ACCEPTANCE CRITERIA:
-    - Accept POST /log with service, user_id, action, level, details
-    - Auto-timestamp with UTC time
-    - Store persistently in MongoDB
-    - Return {"status": "success"} confirmation on successful storage
-    - Return descriptive error for missing/invalid required fields
-    - Handle concurrent logs from multiple microservices (Auth, Training, Procedures)
-
-    FUNCTIONAL REQUIREMENT:
-    Given: microservice needs to record an event
-    When: sends valid POST /log with service, action, level
-    Then: store log with UTC timestamp and respond 200 {"status": "success"}
-
-    Required Fields: service, action, level
-    Optional Fields: user_id, details
-
-    Expected Request:
-    {
-        "service": "Auth|Training|Procedures|etc",
-        "user_id": "user123" (optional),
-        "action": "login|logout|create|update|delete|api_call",
-        "level": "INFO|WARNING|ERROR",
-        "details": "Human readable description" (optional)
-    }
-
-    Success Response: 200 OK {"status": "success"}
-    Error Response: 400 Bad Request with descriptive message
     """
     if logs is None:
         return jsonify({"error": "Database unavailable"}), 500
@@ -221,47 +165,6 @@ def create_log():
 def get_logs():
     """
     Enables compliance administrators to query audit logs with filters
-    
-    ACCEPTANCE CRITERIA:
-    - GET /logs returns JSON list of log entries
-    - Query parameters allow filtering by service, level, user_id
-    - Logs returned in chronological order by default
-    - Each entry includes timestamp, service, user_id, action, level, details
-    - Responds within <1 second for 1,000 logs (performance requirement)
-    - Handles missing filters gracefully (returns all logs when none specified)
-    
-    FUNCTIONAL REQUIREMENT:
-    Given: multiple logs stored from different microservices
-    When: user sends GET /logs with no query parameters
-    Then: return all stored logs in chronological order with full details
-    
-    Query Parameters (all optional):
-    - service: Filter by microservice name (e.g., "Auth", "Training")
-    - level: Filter by log level ("INFO", "WARNING", "ERROR")
-    - user_id: Filter by specific user ID
-    - action: Filter by action type
-    - start_date: Filter from date (ISO format YYYY-MM-DD)
-    - end_date: Filter to date (ISO format YYYY-MM-DD)
-    - limit: Max results (default: 100, max: 1000)
-    - offset: Pagination offset (default: 0)
-    
-    Success Response: 200 OK
-    {
-        "logs": [
-            {
-                "_id": "mongodb_object_id",
-                "timestamp": "2025-11-08T10:30:00Z",
-                "service": "Auth",
-                "user_id": "user123",
-                "action": "login",
-                "level": "INFO",
-                "details": "User successfully logged in"
-            }
-        ],
-        "total": 1500,
-        "filtered": 25,
-        "chronological_order": true
-    }
     """
     if logs is None:
         return jsonify({"error": "Database unavailable"}), 500
@@ -336,37 +239,13 @@ def get_logs():
         print(f"Error retrieving logs: {e}")
         return jsonify({"error": "Failed to retrieve logs"}), 500
 
+# USER STORY 3: User Log Purge
 @app.route('/purge-logs', methods=['POST'])
 @require_admin_auth
 def purge_logs():
     """
-    USER STORY 3: User Log Purge
-    
     Supports 3-year data retention requirement with automated and manual purge capabilities.
     Enables system administrators to manage log storage and comply with data governance.
-    
-    IMPLEMENTED FEATURES:
-    - Automated daily purging of logs older than retention period (configurable, default 3 years)
-    - Manual admin purge with flexible criteria (delete_all, older_than_days, service-specific)
-    - Secure admin authentication with API key and user validation
-    - Asynchronous processing with 202 Accepted response (non-blocking)
-    - Background scheduler for automated daily maintenance
-    
-    Authentication Required:
-    - Authorization: Bearer {ADMIN_API_KEY}
-    - admin_user must be in authorized admin list
-    
-    Request Body - Purge Criteria (one required):
-    {
-        "admin_user": "admin@company.com",
-        "criteria": {
-            "delete_all": true  OR
-            "older_than_days": 90  OR
-            "service": "OldService"
-        }
-    }
-    
-    Response: 202 Accepted {"status": "accepted", "message": "Purge process initiated"}
     """
     if logs is None:
         return jsonify({"error": "Database unavailable"}), 500

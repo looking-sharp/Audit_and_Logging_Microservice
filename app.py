@@ -3,21 +3,21 @@ Audit and Logging Microservice
 
 Implements three core user stories:
 
-1. USER ACTIONS RECORD (POST /log - Tiffany's implementation required)
+1. USER ACTIONS RECORD (POST /log)
    - Records all user and service actions (login, data updates, API calls) in centralized audit log
    - Enables system administrators to trace activity, monitor usage, investigate security issues
    - Accepts service, user_id, action, level, details with automatic UTC timestamping
    - Stores persistently in MongoDB with success confirmation
    - Handles logs from multiple microservices (Auth, Training, Procedures) concurrently
 
-2. FILTER AUDIT LOGS (GET /logs - Tiffany's implementation required)
+2. FILTER AUDIT LOGS (GET /logs)
    - Enables compliance administrators to query logs with filters
    - Supports filtering by service name, user ID, log level for compliance analysis
    - Returns logs in chronological order with full event details
    - Handles missing filters gracefully (returns all logs when none specified)
    - Performance target: <1 second response for 1,000 logs
 
-3. USER LOG PURGE (POST /purge-logs - implemented)
+3. USER LOG PURGE (POST /purge-logs))
    - Automated daily purging respecting 3-year data retention requirement
    - Admin-only manual purge with flexible criteria (delete_all, older_than_days, service)
    - Secure authentication with API key validation
